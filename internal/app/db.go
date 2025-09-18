@@ -89,13 +89,13 @@ func (a *App) ListBookings(ctx context.Context, userID string, from, to time.Tim
 	if filtered {
 		q := `SELECT id,user_id,candidate_email,start_at_utc,end_at_utc,status,created_at 
               FROM bookings 
-              WHERE user_id=$1 AND start_at_utc >= $2 AND start_at_utc < $3
+              WHERE user_id=$1 AND start_at_utc >= $2 AND start_at_utc < $3 AND status != 'cancelled'
               ORDER BY start_at_utc`
 		rows, err = a.DB.Query(ctx, q, userID, from, to)
 	} else {
 		q := `SELECT id,user_id,candidate_email,start_at_utc,end_at_utc,status,created_at 
               FROM bookings 
-              WHERE user_id=$1 
+              WHERE user_id=$1 AND status != 'cancelled'
               ORDER BY start_at_utc`
 		rows, err = a.DB.Query(ctx, q, userID)
 	}
