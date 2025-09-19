@@ -33,17 +33,11 @@ func (a *App) GenerateAvailableSlots(ctx context.Context, userID string, fromUTC
 
 	for day := startDate; !day.After(endDate); day = day.Add(24 * time.Hour) {
 		for _, r := range rules {
-			// load location
-			loc, err := time.LoadLocation(r.Timezone)
-			if err != nil {
-				return nil, fmt.Errorf("invalid timezone %s: %w", r.Timezone, err)
-			}
-			// Determine the weekday in that timezone
-			localMid := day.In(loc)
-			if int(localMid.Weekday()) != r.DayOfWeek {
+			// Check if this day matches the rule's day of week (in UTC)
+			if int(day.Weekday()) != r.DayOfWeek {
 				continue
 			}
-			// parse start and end time (HH:MM)
+			// parse start and end time (HH:MM) - now in UTC
 			startTOD, err := parseHHMM(r.StartTime)
 			if err != nil {
 				return nil, err
@@ -55,16 +49,16 @@ func (a *App) GenerateAvailableSlots(ctx context.Context, userID string, fromUTC
 			if !endTOD.After(startTOD) {
 				return nil, fmt.Errorf("end_time must be after start_time for rule %d", r.ID)
 			}
-			// build local datetime
-			year, month, dayNum := localMid.Date()
-			locStart := time.Date(year, month, dayNum, startTOD.Hour(), startTOD.Minute(), 0, 0, loc)
-			locEnd := time.Date(year, month, dayNum, endTOD.Hour(), endTOD.Minute(), 0, 0, loc)
+			// build UTC datetime
+			year, month, dayNum := day.Date()
+			utcStart := time.Date(year, month, dayNum, startTOD.Hour(), startTOD.Minute(), 0, 0, time.UTC)
+			utcEnd := time.Date(year, month, dayNum, endTOD.Hour(), endTOD.Minute(), 0, 0, time.UTC)
 
 			// chunk into slots
 			slotLen := time.Duration(r.SlotLengthMins) * time.Minute
-			for s := locStart; s.Add(slotLen).Equal(locEnd) || s.Add(slotLen).Before(locEnd); s = s.Add(slotLen) {
-				startUTC := s.UTC()
-				endUTC := s.Add(slotLen).UTC()
+			for s := utcStart; s.Add(slotLen).Equal(utcEnd) || s.Add(slotLen).Before(utcEnd); s = s.Add(slotLen) {
+				startUTC := s
+				endUTC := s.Add(slotLen)
 				if !endUTC.After(fromUTC) || !startUTC.Before(toUTC) {
 					continue
 				}

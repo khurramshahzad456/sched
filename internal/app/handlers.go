@@ -55,14 +55,14 @@ func (a *App) UpdateAvailabilityHandler(c *gin.Context) {
 
 	q := `UPDATE availability_rules
           SET start_time=$1, end_time=$2, slot_length_minutes=$3,
-              timezone=$4, available=$5, updated_at=$6
-          WHERE id=$7 AND user_id=$8
+              available=$4, updated_at=$5
+          WHERE id=$6 AND user_id=$7
           RETURNING id`
 
 	var updatedID int
 	err := a.DB.QueryRow(ctx, q,
 		payload.StartTime, payload.EndTime, payload.SlotLengthMins,
-		payload.Timezone, payload.Available, now, ruleID, userID,
+		payload.Available, now, ruleID, userID,
 	).Scan(&updatedID)
 
 	if err == pgx.ErrNoRows {

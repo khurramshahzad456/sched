@@ -24,18 +24,18 @@ func (a *App) InsertAvailabilityRule(ctx context.Context, r *AvailabilityRule) e
 
 	// Insert
 	q := `INSERT INTO availability_rules
-          (user_id, day_of_week, start_time, end_time, slot_length_minutes, timezone, available, created_at, updated_at)
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`
+          (user_id, day_of_week, start_time, end_time, slot_length_minutes, available, created_at, updated_at)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`
 
 	row := a.DB.QueryRow(ctx, q,
 		r.UserID, r.DayOfWeek, r.StartTime, r.EndTime, r.SlotLengthMins,
-		r.Timezone, r.Available, now, now)
+		r.Available, now, now)
 
 	return row.Scan(&r.ID)
 }
 
 func (a *App) ListAvailabilityRules(ctx context.Context, userID string) ([]AvailabilityRule, error) {
-	q := `SELECT id,user_id,day_of_week,start_time,end_time,slot_length_minutes,timezone,available,created_at,updated_at
+	q := `SELECT id,user_id,day_of_week,start_time,end_time,slot_length_minutes,available,created_at,updated_at
 	      FROM availability_rules WHERE user_id=$1 ORDER BY id`
 	rows, err := a.DB.Query(ctx, q, userID)
 	if err != nil {
@@ -48,7 +48,7 @@ func (a *App) ListAvailabilityRules(ctx context.Context, userID string) ([]Avail
 		var r AvailabilityRule
 		var start, end string
 		if err := rows.Scan(&r.ID, &r.UserID, &r.DayOfWeek, &start, &end,
-			&r.SlotLengthMins, &r.Timezone, &r.Available, &r.CreatedAt, &r.UpdatedAt); err != nil {
+			&r.SlotLengthMins, &r.Available, &r.CreatedAt, &r.UpdatedAt); err != nil {
 			return nil, err
 		}
 		r.StartTime = start
