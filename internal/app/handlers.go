@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -10,6 +11,25 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 )
+
+// validateAvailabilityRule validates that start_time is before end_time
+func validateAvailabilityRule(rule *AvailabilityRule) error {
+	startTime, err := time.Parse("15:04", rule.StartTime)
+	if err != nil {
+		return fmt.Errorf("invalid start_time format: %s", rule.StartTime)
+	}
+
+	endTime, err := time.Parse("15:04", rule.EndTime)
+	if err != nil {
+		return fmt.Errorf("invalid end_time format: %s", rule.EndTime)
+	}
+
+	if !endTime.After(startTime) {
+		return fmt.Errorf("end_time (%s) must be after start_time (%s)", rule.EndTime, rule.StartTime)
+	}
+
+	return nil
+}
 
 // POST /users/:id/availability
 // Accepts list of rules (create/update by id if provided).
@@ -25,6 +45,13 @@ func (a *App) SetAvailabilityHandler(c *gin.Context) {
 	var savedRules []AvailabilityRule
 	for i := range payload {
 		payload[i].UserID = userID
+
+		// Validate the rule
+		if err := validateAvailabilityRule(&payload[i]); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
 		if err := a.InsertAvailabilityRule(ctx, &payload[i]); err != nil {
 			if strings.Contains(err.Error(), "already exists") {
 				c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
@@ -46,6 +73,12 @@ func (a *App) UpdateAvailabilityHandler(c *gin.Context) {
 
 	var payload AvailabilityRule
 	if err := c.BindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Validate the rule
+	if err := validateAvailabilityRule(&payload); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
