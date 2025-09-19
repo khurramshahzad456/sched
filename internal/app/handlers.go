@@ -298,7 +298,7 @@ func (a *App) CancelBookingHandler(c *gin.Context) {
 
 	// Check if already cancelled
 	if currentStatus == "cancelled" {
-		c.JSON(http.StatusConflict, gin.H{"error": "booking already cancelled"})
+		c.JSON(http.StatusConflict, gin.H{"error": "booking not found"})
 		return
 	}
 
@@ -311,7 +311,7 @@ func (a *App) CancelBookingHandler(c *gin.Context) {
 	}
 
 	if res.RowsAffected() == 0 {
-		c.JSON(http.StatusConflict, gin.H{"error": "booking already cancelled"})
+		c.JSON(http.StatusConflict, gin.H{"error": "booking not found"})
 		return
 	}
 
