@@ -81,7 +81,6 @@ func (a *App) UpdateAvailabilityHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, payload)
 }
 
-
 // GET /users/:id/availability
 func (a *App) ListAvailabilityHandler(c *gin.Context) {
 	userID := c.Param("id")
@@ -283,15 +282,38 @@ func (a *App) CreateBookingHandler(c *gin.Context) {
 func (a *App) CancelBookingHandler(c *gin.Context) {
 	id := c.Param("id")
 	ctx := c.Request.Context()
-	q := `UPDATE bookings SET status='cancelled' WHERE id=$1`
-	res, err := a.DB.Exec(ctx, q, id)
+
+	// First check if the booking exists and get its current status
+	checkQ := `SELECT status FROM bookings WHERE id=$1`
+	var currentStatus string
+	err := a.DB.QueryRow(ctx, checkQ, id).Scan(&currentStatus)
+	if err == pgx.ErrNoRows {
+		c.JSON(http.StatusNotFound, gin.H{"error": "booking not found"})
+		return
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if res.RowsAffected() == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+
+	// Check if already cancelled
+	if currentStatus == "cancelled" {
+		c.JSON(http.StatusConflict, gin.H{"error": "booking already cancelled"})
 		return
 	}
+
+	// Update to cancelled
+	updateQ := `UPDATE bookings SET status='cancelled' WHERE id=$1 AND status != 'cancelled'`
+	res, err := a.DB.Exec(ctx, updateQ, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if res.RowsAffected() == 0 {
+		c.JSON(http.StatusConflict, gin.H{"error": "booking already cancelled"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
