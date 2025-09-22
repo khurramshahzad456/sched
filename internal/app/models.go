@@ -9,6 +9,7 @@ type AvailabilityRule struct {
 	StartTime      string    `json:"start_time"`
 	EndTime        string    `json:"end_time"`
 	SlotLengthMins int       `json:"slot_length_minutes"`
+	Title          string    `json:"title,omitempty"`
 	Available      bool      `json:"available"`
 	CreatedAt      time.Time `json:"created_at,omitempty"`
 	UpdatedAt      time.Time `json:"updated_at,omitempty"`
