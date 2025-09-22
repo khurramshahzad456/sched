@@ -299,16 +299,32 @@ func (a *App) CreateBookingHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"id":           newID,
-		"status":       "confirmed",
-		"start_at_utc": start.UTC(),
-		"end_at_utc":   end.UTC(),
-		"source":       req.Source,
-		"type":         req.Type,
-		"description":  req.Description,
-		"title":        req.Title,
-	})
+	// Create response with proper field handling
+	response := gin.H{
+		"id":              newID,
+		"user_id":         userID,
+		"candidate_email": req.CandidateEmail,
+		"status":          "confirmed",
+		"start_at_utc":    start.UTC(),
+		"end_at_utc":      end.UTC(),
+		"created_at":      time.Now().UTC(),
+	}
+
+	// Only include non-empty optional fields
+	if req.Source != "" {
+		response["source"] = req.Source
+	}
+	if req.Type != "" {
+		response["type"] = req.Type
+	}
+	if req.Description != "" {
+		response["description"] = req.Description
+	}
+	if req.Title != "" {
+		response["title"] = req.Title
+	}
+
+	c.JSON(http.StatusCreated, response)
 }
 
 // DELETE /bookings/:id
