@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -11,18 +10,7 @@ import (
 func (a *App) InsertAvailabilityRule(ctx context.Context, r *AvailabilityRule) error {
 	now := time.Now().UTC()
 
-	// Check if availability already exists for this user & day
-	var existingID string
-	checkQ := `SELECT id FROM availability_rules WHERE user_id=$1 AND day_of_week=$2 LIMIT 1`
-	err := a.DB.QueryRow(ctx, checkQ, r.UserID, r.DayOfWeek).Scan(&existingID)
-	if err == nil {
-		return fmt.Errorf("availability already exists for day %d", r.DayOfWeek)
-	}
-	if err != pgx.ErrNoRows {
-		return err
-	}
-
-	// Insert
+	// Insert - no uniqueness check, allow multiple rules per day
 	q := `INSERT INTO availability_rules
           (user_id, day_of_week, start_time, end_time, slot_length_minutes, title, available, created_at, updated_at)
           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`

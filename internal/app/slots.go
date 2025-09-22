@@ -90,11 +90,15 @@ func (a *App) GenerateAvailableSlots(ctx context.Context, userID string, fromUTC
 }
 
 func parseHHMM(s string) (time.Time, error) {
+	// Handle different time formats from database
+	// "07:00:00.000000" -> "07:00"
+	// "07:00" -> "07:00"
+
 	// Take first 5 chars "HH:MM"
 	if len(s) < 5 {
 		return time.Time{}, fmt.Errorf("invalid time string: %s", s)
 	}
-	s = s[:5] // "09:00:00.000000" -> "09:00"
+	s = s[:5] // "07:00:00.000000" -> "07:00"
 	tt, err := time.Parse("15:04", s)
 	if err != nil {
 		return time.Time{}, err

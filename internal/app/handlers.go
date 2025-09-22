@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -53,10 +52,6 @@ func (a *App) SetAvailabilityHandler(c *gin.Context) {
 		}
 
 		if err := a.InsertAvailabilityRule(ctx, &payload[i]); err != nil {
-			if strings.Contains(err.Error(), "already exists") {
-				c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-				return
-			}
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
