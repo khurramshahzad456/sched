@@ -3,7 +3,7 @@ package app
 import "time"
 
 type AvailabilityRule struct {
-	ID             int       `json:"id"`
+	ID             string    `json:"id"`
 	UserID         string    `json:"user_id"`
 	DayOfWeek      int       `json:"day_of_week"`
 	StartTime      string    `json:"start_time"`

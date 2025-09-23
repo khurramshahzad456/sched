@@ -12,8 +12,8 @@ func (a *App) InsertAvailabilityRule(ctx context.Context, r *AvailabilityRule) e
 
 	// Insert - no uniqueness check, allow multiple rules per day
 	q := `INSERT INTO availability_rules
-          (user_id, day_of_week, start_time, end_time, slot_length_minutes, title, available, created_at, updated_at)
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`
+          (id, user_id, day_of_week, start_time, end_time, slot_length_minutes, title, available, created_at, updated_at)
+          VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`
 
 	row := a.DB.QueryRow(ctx, q,
 		r.UserID, r.DayOfWeek, r.StartTime, r.EndTime, r.SlotLengthMins,

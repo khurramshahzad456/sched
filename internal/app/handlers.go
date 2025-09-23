@@ -87,7 +87,7 @@ func (a *App) UpdateAvailabilityHandler(c *gin.Context) {
           WHERE id=$7 AND user_id=$8
           RETURNING id`
 
-	var updatedID int
+	var updatedID string
 	err := a.DB.QueryRow(ctx, q,
 		payload.StartTime, payload.EndTime, payload.SlotLengthMins,
 		payload.Title, payload.Available, now, ruleID, userID,
