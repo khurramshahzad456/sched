@@ -43,7 +43,18 @@ func main() {
 			users.GET("/:id/bookings", appInstance.ListBookingsHandler)
 		}
 		api.DELETE("/bookings/:id", appInstance.CancelBookingHandler)
+		
+		// Google Calendar integration routes
+		calendar := api.Group("/calendar")
+		{
+			calendar.GET("/auth", appInstance.GoogleAuthHandler)
+			calendar.GET("/events", appInstance.GetGoogleCalendarEvents)
+			calendar.GET("/calendars", appInstance.GetGoogleCalendarList)
+		}
 	}
+
+	// OAuth2 callback (outside of auth middleware)
+	router.GET("/oauth2callback", appInstance.GoogleOAuth2CallbackHandler)
 
 	server.Run(router)
 }
