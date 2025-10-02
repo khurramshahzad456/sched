@@ -30,6 +30,16 @@ type CalendarEvent struct {
 	Location    string    `json:"location,omitempty"`
 	Status      string    `json:"status"`
 	Creator     string    `json:"creator,omitempty"`
+	MeetingLink string    `json:"meeting_link,omitempty"`
+	ConferenceData *ConferenceInfo `json:"conference_data,omitempty"`
+}
+
+// ConferenceInfo represents meeting/conference details
+type ConferenceInfo struct {
+	Type        string   `json:"type,omitempty"`        // "hangoutsMeet", "zoom", etc.
+	URL         string   `json:"url,omitempty"`         // Meeting URL
+	ID          string   `json:"id,omitempty"`          // Meeting ID
+	PhoneNumbers []string `json:"phone_numbers,omitempty"` // Dial-in numbers
 }
 
 // InitGoogleCalendarConfig initializes OAuth2 config for Google Calendar
@@ -177,6 +187,62 @@ func (a *App) GetGoogleCalendarEvents(c *gin.Context) {
 		// Handle creator
 		if item.Creator != nil {
 			event.Creator = item.Creator.Email
+		}
+
+		// Extract meeting link (Google Meet link)
+		if item.HangoutLink != "" {
+			event.MeetingLink = item.HangoutLink
+		}
+
+		// Extract detailed conference data
+		if item.ConferenceData != nil && len(item.ConferenceData.EntryPoints) > 0 {
+			conferenceInfo := &ConferenceInfo{}
+			
+			// Get conference type
+			if item.ConferenceData.ConferenceSolution != nil {
+				conferenceInfo.Type = item.ConferenceData.ConferenceSolution.Name
+			}
+			
+			// Get meeting ID
+			if item.ConferenceData.ConferenceId != "" {
+				conferenceInfo.ID = item.ConferenceData.ConferenceId
+			}
+			
+			// Extract entry points (URLs and phone numbers)
+			var phoneNumbers []string
+			for _, entryPoint := range item.ConferenceData.EntryPoints {
+				switch entryPoint.EntryPointType {
+				case "video":
+					if conferenceInfo.URL == "" && entryPoint.Uri != "" {
+						conferenceInfo.URL = entryPoint.Uri
+						// If no HangoutLink, use this as meeting link
+						if event.MeetingLink == "" {
+							event.MeetingLink = entryPoint.Uri
+						}
+					}
+				case "phone":
+					if entryPoint.Uri != "" {
+						phoneNumbers = append(phoneNumbers, entryPoint.Uri)
+					}
+				case "more":
+					// Additional meeting details
+					if entryPoint.Uri != "" && conferenceInfo.URL == "" {
+						conferenceInfo.URL = entryPoint.Uri
+						if event.MeetingLink == "" {
+							event.MeetingLink = entryPoint.Uri
+						}
+					}
+				}
+			}
+			
+			if len(phoneNumbers) > 0 {
+				conferenceInfo.PhoneNumbers = phoneNumbers
+			}
+			
+			// Only include conference data if we have meaningful info
+			if conferenceInfo.URL != "" || conferenceInfo.ID != "" || len(conferenceInfo.PhoneNumbers) > 0 {
+				event.ConferenceData = conferenceInfo
+			}
 		}
 
 		// Parse start time
