@@ -29,6 +29,10 @@ func main() {
 	appInstance := &app.App{DB: pool}
 
 	router := gin.Default()
+	
+	// OAuth2 callback (must be before auth middleware)
+	router.GET("/oauth2callback", appInstance.GoogleOAuth2CallbackHandler)
+	
 	router.Use(app.AuthMiddlewareFromEnv())
 
 	api := router.Group("/api")
@@ -52,9 +56,6 @@ func main() {
 			calendar.GET("/calendars", appInstance.GetGoogleCalendarList)
 		}
 	}
-
-	// OAuth2 callback (outside of auth middleware)
-	router.GET("/oauth2callback", appInstance.GoogleOAuth2CallbackHandler)
 
 	server.Run(router)
 }
