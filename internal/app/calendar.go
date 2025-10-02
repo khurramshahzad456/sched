@@ -22,23 +22,23 @@ type GoogleCalendarConfig struct {
 
 // CalendarEvent represents a Google Calendar event
 type CalendarEvent struct {
-	ID          string    `json:"id"`
-	Summary     string    `json:"summary"`
-	Description string    `json:"description,omitempty"`
-	StartTime   time.Time `json:"start_time"`
-	EndTime     time.Time `json:"end_time"`
-	Location    string    `json:"location,omitempty"`
-	Status      string    `json:"status"`
-	Creator     string    `json:"creator,omitempty"`
-	MeetingLink string    `json:"meeting_link,omitempty"`
+	ID             string          `json:"id"`
+	Summary        string          `json:"summary"`
+	Description    string          `json:"description,omitempty"`
+	StartTime      time.Time       `json:"start_time"`
+	EndTime        time.Time       `json:"end_time"`
+	Location       string          `json:"location,omitempty"`
+	Status         string          `json:"status"`
+	Creator        string          `json:"creator,omitempty"`
+	MeetingLink    string          `json:"meeting_link,omitempty"`
 	ConferenceData *ConferenceInfo `json:"conference_data,omitempty"`
 }
 
 // ConferenceInfo represents meeting/conference details
 type ConferenceInfo struct {
-	Type        string   `json:"type,omitempty"`        // "hangoutsMeet", "zoom", etc.
-	URL         string   `json:"url,omitempty"`         // Meeting URL
-	ID          string   `json:"id,omitempty"`          // Meeting ID
+	Type         string   `json:"type,omitempty"`          // "hangoutsMeet", "zoom", etc.
+	URL          string   `json:"url,omitempty"`           // Meeting URL
+	ID           string   `json:"id,omitempty"`            // Meeting ID
 	PhoneNumbers []string `json:"phone_numbers,omitempty"` // Dial-in numbers
 }
 
@@ -75,7 +75,7 @@ func (a *App) GoogleAuthHandler(c *gin.Context) {
 
 	// Generate state parameter for security
 	state := fmt.Sprintf("user_%s_%d", c.Query("user_id"), time.Now().Unix())
-	
+
 	url := calendarConfig.Config.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	c.JSON(http.StatusOK, gin.H{
 		"auth_url": url,
@@ -93,7 +93,7 @@ func (a *App) GoogleOAuth2CallbackHandler(c *gin.Context) {
 
 	code := c.Query("code")
 	state := c.Query("state")
-	
+
 	if code == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "authorization code required"})
 		return
@@ -108,7 +108,7 @@ func (a *App) GoogleOAuth2CallbackHandler(c *gin.Context) {
 
 	// Store token (in a real app, you'd store this in database associated with user)
 	tokenJSON, _ := json.Marshal(token)
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Authorization successful",
 		"state":   state,
@@ -139,7 +139,7 @@ func (a *App) GetGoogleCalendarEvents(c *gin.Context) {
 
 	// Create HTTP client with token
 	client := calendarConfig.Config.Client(context.Background(), &token)
-	
+
 	// Create Calendar service
 	srv, err := calendar.NewService(context.Background(), option.WithHTTPClient(client))
 	if err != nil {
@@ -176,6 +176,10 @@ func (a *App) GetGoogleCalendarEvents(c *gin.Context) {
 	// Convert to our format
 	var calendarEvents []CalendarEvent
 	for _, item := range events.Items {
+
+		str, _ := json.MarshalIndent(item, "", "")
+		fmt.Println("-----------------------------------------------------------------------")
+		fmt.Println("item: ", string(str))
 		event := CalendarEvent{
 			ID:          item.Id,
 			Summary:     item.Summary,
@@ -197,17 +201,17 @@ func (a *App) GetGoogleCalendarEvents(c *gin.Context) {
 		// Extract detailed conference data
 		if item.ConferenceData != nil && len(item.ConferenceData.EntryPoints) > 0 {
 			conferenceInfo := &ConferenceInfo{}
-			
+
 			// Get conference type
 			if item.ConferenceData.ConferenceSolution != nil {
 				conferenceInfo.Type = item.ConferenceData.ConferenceSolution.Name
 			}
-			
+
 			// Get meeting ID
 			if item.ConferenceData.ConferenceId != "" {
 				conferenceInfo.ID = item.ConferenceData.ConferenceId
 			}
-			
+
 			// Extract entry points (URLs and phone numbers)
 			var phoneNumbers []string
 			for _, entryPoint := range item.ConferenceData.EntryPoints {
@@ -234,11 +238,11 @@ func (a *App) GetGoogleCalendarEvents(c *gin.Context) {
 					}
 				}
 			}
-			
+
 			if len(phoneNumbers) > 0 {
 				conferenceInfo.PhoneNumbers = phoneNumbers
 			}
-			
+
 			// Only include conference data if we have meaningful info
 			if conferenceInfo.URL != "" || conferenceInfo.ID != "" || len(conferenceInfo.PhoneNumbers) > 0 {
 				event.ConferenceData = conferenceInfo
@@ -299,7 +303,7 @@ func (a *App) GetGoogleCalendarList(c *gin.Context) {
 
 	// Create HTTP client with token
 	client := calendarConfig.Config.Client(context.Background(), &token)
-	
+
 	// Create Calendar service
 	srv, err := calendar.NewService(context.Background(), option.WithHTTPClient(client))
 	if err != nil {
@@ -346,7 +350,7 @@ func (a *App) RefreshGoogleToken(c *gin.Context) {
 	var requestBody struct {
 		RefreshToken string `json:"refresh_token" binding:"required"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "refresh_token required"})
 		return
