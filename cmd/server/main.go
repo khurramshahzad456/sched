@@ -54,6 +54,7 @@ func main() {
 			calendar.GET("/auth", appInstance.GoogleAuthHandler)
 			calendar.GET("/events", appInstance.GetGoogleCalendarEvents)
 			calendar.GET("/calendars", appInstance.GetGoogleCalendarList)
+			calendar.POST("/refresh-token", appInstance.RefreshGoogleToken)
 		}
 	}
 

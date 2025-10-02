@@ -273,3 +273,42 @@ func (a *App) GetGoogleCalendarList(c *gin.Context) {
 		"count":     len(calendars),
 	})
 }
+
+// RefreshGoogleToken refreshes an expired Google OAuth token
+func (a *App) RefreshGoogleToken(c *gin.Context) {
+	// Get refresh token from request body
+	var requestBody struct {
+		RefreshToken string `json:"refresh_token" binding:"required"`
+	}
+	
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "refresh_token required"})
+		return
+	}
+
+	calendarConfig := InitGoogleCalendarConfig()
+	if calendarConfig == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Google Calendar not configured"})
+		return
+	}
+
+	// Create token with refresh token
+	token := &oauth2.Token{
+		RefreshToken: requestBody.RefreshToken,
+	}
+
+	// Use token source to get new token
+	tokenSource := calendarConfig.Config.TokenSource(context.Background(), token)
+	newToken, err := tokenSource.Token()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to refresh token"})
+		return
+	}
+
+	// Return new token
+	tokenJSON, _ := json.Marshal(newToken)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Token refreshed successfully",
+		"token":   string(tokenJSON),
+	})
+}
